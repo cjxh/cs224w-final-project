@@ -22,6 +22,7 @@ class ArticleTextData(object):
 		return self.article_to_node_mapping[article_url]
 
 	def generate_node_mapping(self):
+		counter = 0
 		for line in progressbar.progressbar(self.infile):
 			data = line.decode('utf-8').strip("\n").split("\t")
 
@@ -30,6 +31,10 @@ class ArticleTextData(object):
 			for i in range(2, len(data)):
 				dest_node_id = self.get_node_id(data[i])
 				self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+
+			counter += 1
+			if counter == 10000:
+				break
 
 	def dump_pickle(self, output=False):
 		with open('data/article-node-id.pickle', 'wb') as article_node_pickle:
