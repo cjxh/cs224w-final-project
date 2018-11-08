@@ -1,7 +1,8 @@
 import progressbar
 import pickle
 
-class TextData(object):
+
+class ArticleTextData(object):
 
 	def __init__(self):
 		self.node_id_counter = 0
@@ -39,7 +40,7 @@ class TextData(object):
 		self.infile.close()
 		self.snapfile.close()
 
-td = TextData()
+td = ArticleTextData()
 td.open('data/web-2016-09-links-clean-1.txt')
 td.generate_node_mapping()
 td.close()
