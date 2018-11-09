@@ -39,9 +39,9 @@ class SourceTextData(object):
                 else:
                     self.edge_weights[(source_node_id, dest_node_id)] = 1
 
-                counter += 1
-                if counter == 10000:
-                    break
+            counter += 1
+            if counter == 10000:
+                break
 
         for source_node_id, dest_node_id in self.edge_weights.keys():
             self.snapfile.write("{}\t{}\t{}\n".format(str(source_node_id),

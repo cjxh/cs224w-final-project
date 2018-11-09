@@ -1,3 +1,4 @@
+# to install snap, go here: https://snap.stanford.edu/snappy/
 progressbar2==3.38.0
-snap
 sklearn
+matplotlib
