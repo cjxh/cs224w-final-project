@@ -20,7 +20,7 @@ class ArticleData(object):
         self.filepath = filepath
         path = filepath.split('/')
         filename = path[len(path)-1]
-        self.snapfile = open('data/snap-'+filename, 'w')
+        self.snapfile = open('data/small-snap-'+filename, 'w')
 
     def close(self):
         print self.article_to_node_mapping
@@ -30,7 +30,7 @@ class ArticleData(object):
 
     def is_valid_source(self, article_url):
         article_url_split = article_url.split('/')
-        base_url = article_url_split[2] #.split('.')[0]
+        base_url = article_url_split[2]
         for source in self.ground_truth_sources:
             if source in base_url:
                 return True
@@ -75,12 +75,12 @@ class ArticleData(object):
                         self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
                 counter += 1
-                if counter == 1000:
+                if counter == 100:
                     break
 
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
 
-        self.open(self.filepath)
+        self.infile  = open(self.filepath, 'r')
         counter = 0
         for line in tqdm.tqdm(self.infile):
             data = line.decode('utf-8').strip("\n").split("\t")
@@ -101,7 +101,7 @@ class ArticleData(object):
                         self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
                     counter += 1
-                    if counter == 1000:
+                    if counter == 100:
                         break
 
 
