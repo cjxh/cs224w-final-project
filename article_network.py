@@ -1,6 +1,7 @@
 import snap
 import pickle
 from sklearn.cluster import KMeans
+import sklearn
 import matplotlib.pyplot as plt
 
 ground_truth = {
@@ -54,7 +55,7 @@ class ArticleNetwork(object):
 		with open('data/article-node2vec.pickle', 'wb') as embeddings_pickle:
 			pickle.dump(thing_to_pickle, embeddings_pickle, protocol=pickle.HIGHEST_PROTOCOL)
 
-	def update_embeddings(self):
+	def update_embeddings(self, max_k=10):
 		if not self.pickled:
 			snap.node2vec(self.graph, 1, 2, 128, 80, 10, 10, 1, True, self.embeddings)
 
@@ -62,6 +63,15 @@ class ArticleNetwork(object):
 		# pdb.set_trace()
 		X = [[i for i in self.embeddings[embedding]] for embedding in self.embeddings]
 		print self.embeddings
+
+		silhouette_scores = []
+		percent_fake_per_cluster = []
+		# todo: use source-node-id.pickle for article url's
+		for k in range(2, max_k + 1):
+			labels = KMeans(n_clusters=k)
+			silhouette_scores.append((k, sklearn.metrics.silhouette_score(X, labels)))
+		print(silhouette_scores)
+
 
 		kmeans = KMeans(n_clusters=2, random_state=0).fit(X)
 		# import pdb

@@ -3,3 +3,5 @@ data/*
 *.iml
 .idea/*
 venv/*
+node2vec/*
+struc2vec/*
