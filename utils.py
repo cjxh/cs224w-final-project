@@ -43,7 +43,7 @@ def store_ground_truth():
 		"time" : 0.82,
 		"washingtonpost" : 0.83,
 		"denverpost" : 0.83,
-		"ap" : 0.83,
+		"apnews" : 0.83,
 		"politico" : 0.83,
 		"dallasnews" : 0.87,
 		"latimes" : 0.87,
