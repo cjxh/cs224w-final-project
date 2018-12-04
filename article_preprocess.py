@@ -67,17 +67,6 @@ class ArticleData(object):
                         dest_node_id = self.get_node_id(data[i])
                         first_set.add(dest_node_id)
                         second_set.add(source_node_id)
-                        # if level == 1:
-                        #     first_set.add(dest_node_id)
-                        # elif level == 2:
-                        #     if source_node_id in first_set:
-                        #         second_set.add(dest_node_id)
-                        #     else:
-
-                        # elif level == 3 and source_node_id in third_set:
-                        #     third_set.add(dest_node_id)
-                        # else:
-                        #     continue
                         self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
