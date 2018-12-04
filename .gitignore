@@ -5,3 +5,6 @@ data/*
 venv/*
 node2vec/*
 struc2vec/*
+emb/*
+randomwalks.txt
+struc2vec.log
