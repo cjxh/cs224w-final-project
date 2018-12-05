@@ -13,7 +13,10 @@ class ArticleData(object):
     def __init__(self):
         self.node_id_counter = 0
         self.article_to_node_mapping = {}
-        self.ground_truth_sources = load_pickle("ground_truth.pickle").keys()
+        self.ground_truth_sources = load_pickle("ground_truth.pickle")
+        self.source_counts = {}
+        for source in self.ground_truth_sources.keys():
+            self.source_counts[source] = 100
     
     def open(self, filepath):
         self.infile  = open(filepath, 'r')
@@ -31,13 +34,16 @@ class ArticleData(object):
     def is_valid_source(self, article_url):
         article_url_split = article_url.split('/')
         base_url = article_url_split[2]
-        for source in self.ground_truth_sources:
-            if source in base_url:
+        for source in self.ground_truth_sources.keys():
+            if source in base_url and self.source_counts[source] > 0:
+                self.source_counts[source] -= 1
                 return True
         return False
 
     def get_node_id(self, article_url):
         if article_url not in self.article_to_node_mapping.keys():
+            if self.node_id_counter == 5559:
+                print "here"
             self.article_to_node_mapping[article_url] = self.node_id_counter
             self.node_id_counter += 1
 
@@ -63,10 +69,6 @@ class ArticleData(object):
                         second_set.add(source_node_id)
                         self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
-                counter += 1
-                if counter == 100:
-                    break
-
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
 
         self.infile  = open(self.filepath, 'r')
@@ -88,10 +90,6 @@ class ArticleData(object):
 
                         third_set.add(source_node_id)
                         self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
-
-                    counter += 1
-                    if counter == 100:
-                        break
 
 
 
