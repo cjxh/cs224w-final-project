@@ -9,12 +9,50 @@ get 1000 neighbors of those nodes
 get 1000 neighbors of neighbor nodes
 '''
 
+ground_truth = {
+	"occupydemocrats.com": 0,
+	"buzzfeed.com" : 0.07,
+	"breitbart.com": 0.07,
+	"donaldjtrump.com": 0.1,
+	"infowars.com" : 0.1,
+	"yahoo.com" : 0.125,
+	"huffingtonpost.com" : 0.2,
+	"theblaze.com" : 0.2,
+	"foxnews.com" : 0.23,
+	"rushlimbaugh.com" : 0.32,
+	"abc.com" : 0.37,
+	"msnbc.com" : 0.37,
+	"drudgereport.com" : 0.39,
+	"nbc.com" : 0.43,
+	"cnn.com" : 0.43,
+	"cbs.com" : 0.5,
+	"theatlantic.com" : 0.62,
+	"usatoday.com" : 0.64,
+	"nytimes.com" : 0.75,
+	"kansascity" : 0.76,
+	"seattletimes.com" : 0.76,
+	".time.com" : 0.82,
+	"washingtonpost.com" : 0.83,
+	"denverpost.com" : 0.83,
+	"apnews.com" : 0.83,
+	"politico.com" : 0.83,
+	"dallasnews.com" : 0.87,
+	"latimes.com" : 0.87,
+	"wsj.com" : 0.9,
+	"theguardian" : 0.92,
+	"pbs.org" : 0.92,
+	"npr.org" : 0.95,
+	"bbc.com" : 0.95,
+	"reuters.com" : 0.96,
+	"economist.com" : 1
+}
 
 class SourceData(object):
     def __init__(self):
         self.node_id_counter = 0
         self.source_to_node_mapping = {}
-        self.ground_truth_sources = load_pickle("ground_truth.pickle").keys()
+        #self.ground_truth_sources = load_pickle("ground_truth.pickle").keys()
+        self.ground_truth_sources = ground_truth
 
     def open(self, filepath):
         self.infile = open(filepath, 'r')
@@ -52,7 +90,7 @@ class SourceData(object):
         return article_url.split("//")[1].split("/")[0]
 
     def generate_node_mapping(self):
-        counter = 0
+        #counter = 0
         first_set = set([])
         second_set = set([])
 
@@ -70,14 +108,16 @@ class SourceData(object):
                     second_set.add(dest_node_id)
                     self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
-                counter += 1
-                if counter == 100:
+                if len(first_set) > 100:
                     break
+                #counter += 1
+               #if counter == 100:
+                #    break
 
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
 
         self.infile = open(self.filepath, 'r')
-        counter = 0
+        #counter = 0
         for line in tqdm.tqdm(self.infile):
             data = line.decode('utf-8').strip("\n").split("\t")
 
@@ -95,9 +135,11 @@ class SourceData(object):
                     third_set.add(source_node_id)
                     self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
 
-                    counter += 1
-                    if counter == 100:
+                    if len(third_set) > 10000:
                         break
+                    # counter += 1
+                    # if counter == 100:
+                    #     break
 
 
 td = SourceData()
