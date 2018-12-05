@@ -85,7 +85,7 @@ class SourceData(object):
 
     def article_url_to_source_url(self, article_url):
         for source in self.ground_truth_sources:
-            if article_url in source:
+            if source in article_url:
                 return source
         return article_url.split("//")[1].split("/")[0]
 
