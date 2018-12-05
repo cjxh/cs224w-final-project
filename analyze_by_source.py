@@ -132,7 +132,7 @@ class ArticleNetwork(object):
 		# 	print(silhouette_scores[-1])
 		# print(silhouette_scores)
 
-		num_clusters = 10
+		num_clusters = 5
 		embeddings = collections.OrderedDict(embeddings)
 		kclusterer = KMeansClusterer(num_clusters, distance=nltk.cluster.util.cosine_distance, repeats=1)
 		cluster_labels = kclusterer.cluster(np.array(embeddings.values()), assign_clusters=True)
