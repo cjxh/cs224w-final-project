@@ -63,11 +63,16 @@ class ArticleData(object):
                 source_node_id = self.get_node_id(data[0])
 
                 for i in range(2, len(data)):
-                    if self.is_valid_source(data[i]):
-                        dest_node_id = self.get_node_id(data[i])
-                        first_set.add(dest_node_id)
-                        second_set.add(source_node_id)
-                        self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+                    dest_node_id = self.get_node_id(data[i])
+                    first_set.add(dest_node_id)
+                    second_set.add(source_node_id)
+                    self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+
+                    counter += 1
+                    if counter > 1000:
+                        break
+
+        dump_pickle('data/first-set.pickle', first_set)
 
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
 
@@ -76,20 +81,23 @@ class ArticleData(object):
         for line in tqdm.tqdm(self.infile):
             data = line.decode('utf-8').strip("\n").split("\t")
 
-            if not self.is_valid_source(data[0]):
-                continue 
+            # if not self.is_valid_source(data[0]):
+            #     continue 
 
             if data[0] in second_set:
                 source_node_id = self.get_node_id(data[0])
 
                 for i in range(2, len(data)):
-                    if self.is_valid_source(data[i]):
-                        dest_node_id = self.get_node_id(data[i])
-                        if dest_node_id in first_set:
-                            continue 
+                    dest_node_id = self.get_node_id(data[i])
+                    if dest_node_id in first_set:
+                        continue 
 
-                        third_set.add(source_node_id)
-                        self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+                    third_set.add(source_node_id)
+                    self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+
+                    counter += 1
+                    if counter > 1000:
+                        break
 
 
 

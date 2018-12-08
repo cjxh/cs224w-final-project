@@ -110,7 +110,7 @@ class ArticleNetwork(object):
 				embeddings[items[0]] = items[1:]
 
 		# todo: uncomment
-		# silhouette_scores = []
+		silhouette_scores = []
 		# for k in range(2, max_k + 1):
 		# 	cluster_labels = KMeans(n_clusters=k).fit(embeddings.values())
 		# 	silhouette_scores.append((k, sklearn.metrics.silhouette_score(embeddings.values(), cluster_labels.labels_)))
@@ -118,7 +118,7 @@ class ArticleNetwork(object):
 		# print(silhouette_scores)
 
 		embeddings = collections.OrderedDict(embeddings)
-		cluster_labels = KMeans(n_clusters=11).fit(embeddings.values()).labels_
+		cluster_labels = KMeans(n_clusters=5).fit(embeddings.values()).labels_
 		avg_trust_score_per_cluster = []
 		for cluster_id in range(1, 12):
 

@@ -8,3 +8,4 @@ struc2vec/*
 emb/*
 randomwalks.txt
 struc2vec.log
+*.pyc
