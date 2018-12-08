@@ -6,47 +6,10 @@ import matplotlib.pyplot as plt
 import collections
 import networkx as nx
 import numpy as np
+import tsne
 
 from nltk.cluster import KMeansClusterer
 import nltk
-
-# ground_truth = {
-# 	"occupydemocrats": 0,
-# 	"buzzfeed" : 0.07,
-# 	"breitbart": 0.07,
-# 	"donaldjtrump": 0.1,
-# 	"infowars" : 0.1,
-# 	"yahoo" : 0.125,
-# 	"huffingtonpost" : 0.2,
-# 	"theblaze" : 0.2,
-# 	"fox" : 0.23,
-# 	"rushlimbaugh" : 0.32,
-# 	"abc" : 0.37,
-# 	"msnbc" : 0.37,
-# 	"drudgereport" : 0.39,
-# 	"nbc" : 0.43,
-# 	"cnn" : 0.43,
-# 	"cbs" : 0.5,
-# 	"theatlantic" : 0.62,
-# 	"usatoday" : 0.64,
-# 	"nytimes" : 0.75,
-# 	"kansascity" : 0.76,
-# 	"seattletimes" : 0.76,
-# 	"time" : 0.82,
-# 	"washingtonpost" : 0.83,
-# 	"denverpost" : 0.83,
-# 	"ap" : 0.83,
-# 	"politico" : 0.83,
-# 	"dallasnews" : 0.87,
-# 	"latimes" : 0.87,
-# 	"wsj" : 0.9,
-# 	"theguardian" : 0.92,
-# 	"pbs" : 0.92,
-# 	"npr" : 0.95,
-# 	"bbc" : 0.95,
-# 	"reuters" : 0.96,
-# 	"economist" : 1
-# }
 
 ground_truth = {
 	"occupydemocrats.com": 0,
@@ -87,24 +50,28 @@ ground_truth = {
 }
 
 class ArticleNetwork(object):
-	def __init__(self):
+	def __init__(self, source_to_node_id_filename):
 		self.node_id_to_source_map = None
+		self.node_id_to_key_map = None
+		self.source_to_node_id_filename = source_to_node_id_filename
+
+		source_to_node_id_map = pickle.load(open(self.source_to_node_id_filename, 'rb'))
+		self.node_id_to_source_map = {}
+		for source, id in source_to_node_id_map.items():
+			self.node_id_to_source_map[str(id)] = source
+
+		self.node_id_to_key_map = {}
+		source_to_node_id_map = pickle.load(open(self.source_to_node_id_filename, 'rb'))
+		for source, id in source_to_node_id_map.items():
+			for key in ground_truth.keys():
+				if key in source:
+					self.node_id_to_key_map[str(id)] = key
 
 	def trust_score_for_source(self, node_id):
-		source_to_node_id_map = pickle.load(open('data/source-node-id.pickle', 'rb'))
-		if self.node_id_to_source_map is None:
-			self.node_id_to_source_map = {}
-			for source, id in source_to_node_id_map.items():
-				self.node_id_to_source_map[str(id)] = source
+		key = self.node_id_to_key_map.get(node_id)
+		if key is not None:
+			return ground_truth[key]
 
-		source_of_node = None
-		for source, id in source_to_node_id_map.items():
-			if str(id) == node_id:
-				source_of_node = source
-
-		for key in ground_truth.keys():
-			if key in source_of_node:
-				return ground_truth[key]
 		return None
 
 	def is_labeled_source(self, url):
@@ -113,14 +80,20 @@ class ArticleNetwork(object):
 				return True
 		return False
 
-	def evaluate_embeddings(self, embedding_filename, max_k=30):
-		embeddings = {} # node id to embedding
+	def get_embeddings(self, embedding_filename):
+		embeddings = {}  # node id to embedding
 		with open(embedding_filename, "r") as file:
-			for line in file:
+			for i, line in enumerate(file):
+				if i == 0:
+					continue
 				items = line.split(" ")
 				node_id = str(items[0])
 				if self.trust_score_for_source(node_id) is not None:
 					embeddings[node_id] = [float(value) for value in items[1:]]
+		return embeddings
+
+	def evaluate_embeddings(self, embedding_filename, max_k=30):
+		embeddings = self.get_embeddings(embedding_filename)
 
 		# todo: uncomment
 		# silhouette_scores = []
@@ -132,7 +105,7 @@ class ArticleNetwork(object):
 		# 	print(silhouette_scores[-1])
 		# print(silhouette_scores)
 
-		num_clusters = 5
+		num_clusters = 9
 		embeddings = collections.OrderedDict(embeddings)
 		kclusterer = KMeansClusterer(num_clusters, distance=nltk.cluster.util.cosine_distance, repeats=1)
 		cluster_labels = kclusterer.cluster(np.array(embeddings.values()), assign_clusters=True)
@@ -169,16 +142,50 @@ class ArticleNetwork(object):
 
 def evaluate_embeddings():
     # using 'data/small-by-source-snap-web-2016-09-links-clean-1.txt'
-    article_network = ArticleNetwork()
+    article_network = ArticleNetwork('data/source-node-id.pickle')
     article_network.evaluate_embeddings("emb/testingnode2vec-by-source.emd")
 
 def visualize_graph():
-    graph = nx.read_edgelist('data/small-by-source-snap-web-2016-09-links-clean-1.txt')
-    nx.draw_networkx(graph)
-    c_values = nx.clustering(graph)
-    print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
-    plt.show()
 
-evaluate_embeddings()
-#visualize_graph()
+	graph = nx.read_edgelist('backup-data/just-labeled-links-weighted-nx.txt', create_using=nx.DiGraph)
+	source_to_node_id_map = pickle.load(open('backup-data/just-labeled-data.pickle', 'rb'))
+	node_id_to_source_map = {}
+	for source, id in source_to_node_id_map.items():
+		if str(id) in graph.nodes():
+			node_id_to_source_map[str(id)] = ground_truth[source]
+
+	stats = []
+	for node in graph.nodes():
+		stats.append([node, node_id_to_source_map[str(node)], graph.degree[node]])
+	print(stats)
+
+	network = ArticleNetwork('data/source-node-id.pickle')
+	embeddings = network.get_embeddings("emb/testingnode2vec-by-source.emd")
+	X = []
+	colors = []
+	for node_id, embedding in embeddings.items():
+		X.append(embedding)
+		score = node_id_to_source_map.get(str(node_id))
+		if score is None:
+			colors.append("black")
+			continue
+		color = "green"
+		if score <= 0.25:
+			color = "blue"
+		elif score >= 0.75:
+			color = "red"
+
+		colors.append(color)
+	Y = tsne.tsne(np.array(X), 2, 50, 20.0)
+	plt.scatter(Y[:, 0], Y[:, 1], 20, c=colors)
+	plt.show()
+
+	weights = [graph[u][v]['weight'] for u, v in graph.edges()]
+	nx.draw_networkx(graph, labels=node_id_to_source_map, width=weights) # note: can remove width option if you want
+	c_values = nx.clustering(graph)
+	print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
+	plt.show()
+
+#evaluate_embeddings()
+visualize_graph()
 
