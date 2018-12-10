@@ -1,5 +1,8 @@
 import tqdm
 from utils import load_pickle, dump_pickle
+from collections import Counter
+import snap
+import networkx as nx
 
 '''
 filter out data not in ground truth (store in a pickle file)
@@ -89,8 +92,8 @@ class SourceData(object):
                 return source
         return article_url.split("//")[1].split("/")[0]
 
-    def generate_node_mapping(self):
-        #counter = 0
+    def generate_node_mapping(self, remove_self_edges=True):
+
         first_set = set([])
         second_set = set([])
 
@@ -103,10 +106,16 @@ class SourceData(object):
                 source_node_id = self.get_node_id(data[0])
 
                 for i in range(2, len(data)):
+                    if remove_self_edges and self.article_url_to_source_url(data[0]) == self.article_url_to_source_url(data[i]):
+                        continue
                     dest_node_id = self.get_node_id(data[i])
+                    # if not self.is_valid_source(data[i]):
+                    #     continue
                     first_set.add(source_node_id) # todo: this was a bug in the article version. first set should be source id
                     second_set.add(dest_node_id)
+
                     self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+
 
                 if len(first_set) > 100:
                     break
@@ -115,34 +124,69 @@ class SourceData(object):
                 #    break
 
         print "~~~~~~~~~~~~~~~~~" + str(len(first_set))
+        print "~~~~~~~~~~~~~~~~~" + str(len(second_set))
 
         self.infile = open(self.filepath, 'r')
-        #counter = 0
+        counter = 0
         for line in tqdm.tqdm(self.infile):
             data = line.decode('utf-8').strip("\n").split("\t")
 
-            if not self.is_valid_source(data[0]):
-                continue
+            # if not self.is_valid_source(data[0]):
+            #     continue
 
             if self.get_node_id(data[0]) in second_set:   # todo: this was another bug. should be node id
                 source_node_id = self.get_node_id(data[0])
 
+                #sub_count = 0
+                just_added_nodes = set()
                 for i in range(2, len(data)):
-                    dest_node_id = self.get_node_id(data[i])
-                    if dest_node_id in first_set:
+                    if remove_self_edges and self.article_url_to_source_url(data[0]) == self.article_url_to_source_url(data[i]):
                         continue
 
-                    third_set.add(source_node_id)
+                    dest_node_id = self.get_node_id(data[i])
+                    # if dest_node_id in first_set:
+                    #     continue
+                    if dest_node_id in just_added_nodes:
+                        continue
+
+                    third_set.add(dest_node_id)
+                    just_added_nodes.add(dest_node_id)
                     self.snapfile.write(str(source_node_id) + "\t" + str(dest_node_id) + "\n")
+                    counter += 1
+                    #sub_count += 1
+                    if counter % 1000 == 0:
+                        print("counter = ", counter)
 
-                    if len(third_set) > 10000:
+                    if len(just_added_nodes) >= 30:
                         break
-                    # counter += 1
-                    # if counter == 100:
-                    #     break
+
+                if counter >= 15000:
+                    break
+
+                if len(third_set) > 10000:
+                    break
+
+def create_graph():
+    td = SourceData()
+    td.open('data/web-2016-09-links-clean-1.txt')
+    td.generate_node_mapping()
+    td.close()
+
+def convert_to_weighted():
+    graph = nx.read_edgelist('backup-data/small-by-source-snap-web-2016-09-links-clean-1.txt', create_using=nx.MultiDiGraph)
+
+    digraph = nx.DiGraph()
+    for u, v, data in graph.edges(data=True):
+        if digraph.has_edge(u, v):
+            digraph[u][v]['weight'] += 1.0
+        else:
+            digraph.add_edge(u, v, weight=1.0)
+    nx.write_edgelist(digraph, "data/weighted.txt")
+
+    with open("backup-data/weighted-small-by-source-snap-web-2016-09-links-clean-1.txt", "w") as ofile:
+        for u, v, data in digraph.edges(data=True):
+            ofile.write("{} {} {}\n".format(u, v, int(data['weight'])))
 
 
-td = SourceData()
-td.open('data/web-2016-09-links-clean-1.txt')
-td.generate_node_mapping()
-td.close()
+#create_graph()
+convert_to_weighted()
