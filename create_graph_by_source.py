@@ -166,8 +166,6 @@ class SourceData(object):
                 if len(third_set) > 10000:
                     break
 
-
-
 def create_graph():
     td = SourceData()
     td.open('data/web-2016-09-links-clean-1.txt')
