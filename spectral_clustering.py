@@ -11,6 +11,7 @@ from utils import load_pickle, dump_pickle
 class NewsSpectralClustering(object):
 	def __init__(self, filename, weighted=False, is_large_network=False):
 		np.random.seed(1)
+		self.is_large_network = is_large_network
 		if not weighted:
 			self.G = nx.read_edgelist('data/{}'.format(filename))
 		else:
@@ -38,6 +39,7 @@ class NewsSpectralClustering(object):
 		return trust_score
 
 	def initialize_node_to_ground_truth(self):
+		self.index_to_node = [node[0] for node in self.G.nodes.items()]
 		self.node_trust_scores_map = {}
 		for node in self.G.nodes.items():
 			self.node_trust_scores_map[node[0]] = self.get_trust_score_for_source(self.node_id_to_source_map[node[0]])
@@ -55,7 +57,7 @@ class NewsSpectralClustering(object):
 		return np.argmax(eigengaps) + 2
 
 	def calc_optimal_clusters(self):
-		self.L_eigenvalues = nx.laplacian_spectrum(self.G)[:15]
+		self.L_eigenvalues = nx.laplacian_spectrum(self.G)[:13]
 		return self.get_optimal_k(self.L_eigenvalues)
 
 	def plot_eigenvalues(self):
@@ -67,14 +69,35 @@ class NewsSpectralClustering(object):
 		sc.fit(self.adj_mat)
 		
 		print('spectral clustering')
-		print(sc.__dict__)
 		print(sc.labels_)
 		print(len(sc.labels_))
-		# for cluster_id in sc.labels_:
-		# 	print str(cluster_id) + ":"
-		# 	print "\t" + str([])
-		print('just for better-visualization: invert clusters (permutation)')
-		print(np.abs(sc.labels_ - 1))
+		if not self.is_large_network:
+			for cluster_id in range(0, k):
+				cluster_nodes = []
+				for idx in range(0, len(sc.labels_)):
+					if sc.labels_[idx] == cluster_id:
+						cluster_nodes.append(self.node_id_to_source_map[self.index_to_node[idx]])
+				print str(cluster_id) + ":"
+				print "\t" + str(cluster_nodes)
+
+	    # get ground truth for node (only node ids with labels)
+		self.gt = []
+		labeled_node_indices = []
+		for idx in range(0, len(self.index_to_node)):
+			node_source = self.node_id_to_source_map[self.index_to_node[idx]]
+			node_source_trust_score = self.get_trust_score_for_source(node_source)
+			if node_source_trust_score is not None:
+				labeled_node_indices.append(idx)
+				print node_source_trust_score
+				rounded_trust_score = round(node_source_trust_score, 1)
+				self.gt.append(10 * rounded_trust_score)
+
+		labeled_sc_labels = []
+		for idx in labeled_node_indices:
+			labeled_sc_labels.append(sc.labels_[idx])
+
+		print "AMI metrics:{}".format(metrics.adjusted_mutual_info_score(self.gt, labeled_sc_labels))
+
 
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 print "small network"
@@ -97,7 +120,7 @@ print "large network"
 large_network = NewsSpectralClustering('small-by-source-snap-web-2016-09-links-clean-1.txt', is_large_network=True)
 large_network_optimal_k = large_network.calc_optimal_clusters()
 print "optimal k (< 15): {}".format(large_network_optimal_k)
-small_network.plot_eigenvalues()
+large_network.plot_eigenvalues()
 large_network.cluster(large_network_optimal_k)
 
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -105,18 +128,6 @@ print "large weighted network"
 large_network_weighted = NewsSpectralClustering('weighted-small-by-source-snap-web-2016-09-links-clean-1.txt', weighted=True, is_large_network=True)
 large_network_weighted_optimal_k = large_network_weighted.calc_optimal_clusters()
 print "optimal k (< 15): {}".format(large_network_weighted_optimal_k)
-small_network.plot_eigenvalues()
+large_network_weighted.plot_eigenvalues()
 large_network_weighted.cluster(large_network_weighted_optimal_k)
 print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-
-# print('ground truth')
-# print(gt)
-
-# Cluster
-
-
-# Compare ground-truth and clustering-results
-
-# Calculate some clustering metrics
-# print(metrics.adjusted_rand_score(gt, sc.labels_))
-# print(metrics.adjusted_mutual_info_score(gt, sc.labels_))
