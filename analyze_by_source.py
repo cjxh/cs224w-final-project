@@ -97,22 +97,9 @@ class ArticleNetwork(object):
 	def evaluate_embeddings(self, embedding_filename, max_k=20):
 		embeddings = self.get_embeddings(embedding_filename)
 
-		def score_to_label(score):
-			if score < 0.25:
-				return 1
-			elif score < 0.5:
-				return 2
-			elif score < 0.75:
-				return 3
-			else:
-				return 4
-
-		# todo: uncomment
 		silhouette_scores = []
 		for k in range(2, max_k + 1):
-			# cluster_labels = KMeans(n_clusters=k).fit(embeddings.values())
-			#kclusterer = KMeansClusterer(k, distance=nltk.cluster.util.cosine_distance, repeats=1)
-			kclusterer = KMeansClusterer(k, distance=nltk.cluster.util.euclidean_distance, repeats=1)
+			kclusterer = KMeansClusterer(k, distance=nltk.cluster.util.cosine_distance, repeats=1)
 			cluster_labels = kclusterer.cluster(np.array(embeddings.values()), assign_clusters=True)
 			silhouette_scores.append((k, sklearn.metrics.silhouette_score(embeddings.values(), cluster_labels)))
 			print(silhouette_scores[-1])
@@ -123,7 +110,7 @@ class ArticleNetwork(object):
 		num_clusters = min(s_scores[0][0], 15)
 		embeddings = collections.OrderedDict(embeddings)
 		score = 0.0
-		for _ in range(100):
+		for _ in range(100000):
 			kclusterer = KMeansClusterer(num_clusters, distance=nltk.cluster.util.cosine_distance) #repeats=1
 			cluster_labels = kclusterer.cluster(np.array(embeddings.values()), assign_clusters=True)
 			true_labels = [ 10 * round(self.trust_score_for_source(node_id), 1) for node_id in embeddings.keys()]
@@ -131,62 +118,61 @@ class ArticleNetwork(object):
 		print("score = {}".format(score / 100.0))
 
 
-		# shuffled_score = 0.0
-		# for _ in range(1000):
-		# 	random.shuffle(cluster_labels)
-		# 	shuffled_score += adjusted_mutual_info_score(cluster_labels, true_labels)
-		# print("shuffled score = {}".format(shuffled_score / 1000))
+		shuffled_score = 0.0
+		for _ in range(1000):
+			random.shuffle(cluster_labels)
+			shuffled_score += adjusted_mutual_info_score(cluster_labels, true_labels)
+		print("shuffled score = {}".format(shuffled_score / 1000))
 
 
-		# avg_trust_score_per_cluster = []
-		# for cluster_id in range(num_clusters):
-        #
-		# 	trust_scores_for_cluster = [self.trust_score_for_source(str(node_id)) for i, node_id in enumerate(embeddings.keys())
-		# 								if cluster_labels[i] == cluster_id and self.trust_score_for_source(str(node_id)) is not None]
-        #
-		# 	total_count = 0
-		# 	sources = []
-		# 	for url_base in ground_truth.keys():
-		# 		for index, node_id in enumerate(embeddings.keys()):
-		# 			if cluster_labels[index] != cluster_id:
-		# 				continue
-        #
-		# 			source =  self.node_id_to_source_map[node_id]
-		# 			if url_base in source:
-		# 				total_count += 1
-		# 				sources.append(source)
-        #
-		# 	print("total = {}".format(total_count))
-		# 	print(trust_scores_for_cluster)
-		# 	print(sources)
-        #
-		# 	if len(trust_scores_for_cluster) > 0:
-		# 		avg_trust_score_per_cluster.append(sum(trust_scores_for_cluster) / len(trust_scores_for_cluster))
-		# 	else:
-		# 		avg_trust_score_per_cluster.append(0)
-        #
-		# plt.bar(range(num_clusters), avg_trust_score_per_cluster)
-		# plt.show()
+		avg_trust_score_per_cluster = []
+		for cluster_id in range(num_clusters):
+
+			trust_scores_for_cluster = [self.trust_score_for_source(str(node_id)) for i, node_id in enumerate(embeddings.keys())
+										if cluster_labels[i] == cluster_id and self.trust_score_for_source(str(node_id)) is not None]
+
+			total_count = 0
+			sources = []
+			for url_base in ground_truth.keys():
+				for index, node_id in enumerate(embeddings.keys()):
+					if cluster_labels[index] != cluster_id:
+						continue
+
+					source =  self.node_id_to_source_map[node_id]
+					if url_base in source:
+						total_count += 1
+						sources.append(source)
+
+			print("total = {}".format(total_count))
+			print(trust_scores_for_cluster)
+			print(sources)
+
+			if len(trust_scores_for_cluster) > 0:
+				avg_trust_score_per_cluster.append(sum(trust_scores_for_cluster) / len(trust_scores_for_cluster))
+			else:
+				avg_trust_score_per_cluster.append(0)
+
+		plt.bar(range(num_clusters), avg_trust_score_per_cluster)
+		plt.show()
 
 
 def evaluate_embeddings():
-    # using 'data/small-by-source-snap-web-2016-09-links-clean-1.txt'
-    article_network = ArticleNetwork('backup-data/just-labeled-data.pickle') #'data/source-node-id.pickle'
-    article_network.evaluate_embeddings("emb/testingstruc2vec.emd") #testingnode2vec-by-source
+    article_network = ArticleNetwork('backup-data/just-labeled-data.pickle')
+    article_network.evaluate_embeddings("emb/testingstruc2vec.emd")
 
 def visualize_graph():
 
-	# graph = nx.read_edgelist('backup-data/large-unweighted.txt', create_using=nx.DiGraph)
-	# source_to_node_id_map = pickle.load(open('data/source-node-id.pickle', 'rb'))
-	# node_id_to_source_map = {}
-	# for source, id in source_to_node_id_map.items():
-	# 	if str(id) in graph.nodes():
-	# 		node_id_to_source_map[str(id)] = ground_truth[source]
+	graph = nx.read_edgelist('backup-data/large-unweighted.txt', create_using=nx.DiGraph)
+	source_to_node_id_map = pickle.load(open('data/source-node-id.pickle', 'rb'))
+	node_id_to_source_map = {}
+	for source, id in source_to_node_id_map.items():
+		if str(id) in graph.nodes():
+			node_id_to_source_map[str(id)] = ground_truth[source]
 
-	# stats = []
-	# for node in graph.nodes():
-	# 	stats.append([node, node_id_to_source_map[str(node)], graph.degree[node]])
-	# print(stats)
+	stats = []
+	for node in graph.nodes():
+		stats.append([node, node_id_to_source_map[str(node)], graph.degree[node]])
+	print(stats)
 
 	graph = nx.read_edgelist('backup-data/just-labeled-links-weighted-nx.txt', create_using=nx.DiGraph)
 	network = ArticleNetwork('backup-data/just-labeled-data.pickle')
@@ -223,29 +209,32 @@ def visualize_graph():
 		y_vals =  [Y[i, 1] for i in range(len(colors)) if colors[i] == color]
 		plt.scatter(x_vals, y_vals, c=color, label=label)
 
-	#Y = tsne.tsne(np.array(X), 2, 50, 20.0)
-	#plt.scatter(Y[:, 0], Y[:, 1], 20, c=colors, label=["Trust Score <= 0.25", "0.25 < Trust Score < 0.75", "Trust Score >= 0.75"])
+	Y = tsne.tsne(np.array(X), 2, 50, 20.0)
+	plt.scatter(Y[:, 0], Y[:, 1], 20, c=colors, label=["Trust Score <= 0.25", "0.25 < Trust Score < 0.75", "Trust Score >= 0.75"])
 	plt.legend()
-	#plt.legend(["blue", "green", "red"],["Trust Score <= 0.25", "0.25 < Trust Score < 0.75", "Trust Score >= 0.75"])
+	plt.legend(["blue", "green", "red"],["Trust Score <= 0.25", "0.25 < Trust Score < 0.75", "Trust Score >= 0.75"])
 	plt.show()
 
 
-	#weights = [graph[u][v]['weight'] for u, v in graph.edges()] # todo: uncomment for weights
-	nx.draw_networkx(graph, labels=node_id_to_source_map) # width=weights note: can remove width option if you want
+	# Draw all of the nodes in the graph
+	nx.draw_networkx(graph, labels=node_id_to_source_map)
+	plt.show()
+	weights = [graph[u][v]['weight'] for u, v in graph.edges()]
+	nx.draw_networkx(graph, labels=node_id_to_source_map, width=weights)
 	plt.show()
 
-	# todo: uncomment for clustering coef
-	# graph = nx.Graph(graph)
-	# c_values = nx.clustering(graph)
-	# print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
-	# n = len(graph.nodes())
-	# e = len(graph.edges())
-	# rand_graph = nx.fast_gnp_random_graph(n, e * 1.0 / (0.5 * n * (n - 1)))
-	# c_values = nx.clustering(rand_graph)
-	# print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
+	# Calculate the clustering coefficient for the graph and the gnp graph
+	graph = nx.Graph(graph)
+	c_values = nx.clustering(graph)
+	print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
+	n = len(graph.nodes())
+	e = len(graph.edges())
+	rand_graph = nx.fast_gnp_random_graph(n, e * 1.0 / (0.5 * n * (n - 1)))
+	c_values = nx.clustering(rand_graph)
+	print("avg clustering coefficient {}".format(sum(c_values.values()) / len(c_values.values())))
 
 
 
 evaluate_embeddings()
-#visualize_graph()
+visualize_graph()
 
